@@ -53,6 +53,10 @@ knowledge_graph.json
 *.db
 *.sqlite
 
+# Runtime data
+backups/
+instances/
+
 # Confidential information
 .env
 *.pem

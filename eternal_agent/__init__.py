@@ -31,6 +31,21 @@ from .evolution import (
     EvolutionStrategy,
     EvolutionEngine
 )
+from .reliability import (
+    BackupManager,
+    BackupMetadata,
+    DataIntegrityChecker,
+    MultiFileStorage,
+    AtomicWriter,
+    HealthStatus,
+    EnhancedHealthChecker,
+    GracefulShutdownManager,
+    ResourceMonitor,
+    InstanceManager,
+    FailoverManager,
+    DisasterRecoveryManager,
+    ReliabilityManager
+)
 
 __all__ = [
     'EternalSelfAgent',
@@ -66,4 +81,17 @@ __all__ = [
     'GraphIndex',
     'EvolutionStrategy',
     'EvolutionEngine',
+    'BackupManager',
+    'BackupMetadata',
+    'DataIntegrityChecker',
+    'MultiFileStorage',
+    'AtomicWriter',
+    'HealthStatus',
+    'EnhancedHealthChecker',
+    'GracefulShutdownManager',
+    'ResourceMonitor',
+    'InstanceManager',
+    'FailoverManager',
+    'DisasterRecoveryManager',
+    'ReliabilityManager',
 ]
