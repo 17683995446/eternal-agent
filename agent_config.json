@@ -1,0 +1,11 @@
+{
+  "loop_delay": 0.3,
+  "evolve_step": 50,
+  "kg_save_path": "knowledge_graph.json",
+  "task_queue_max": 200,
+  "min_weight_for_derive": 0.2,
+  "min_weight_for_keep": 0.1,
+  "default_edge_weight": 0.8,
+  "log_level": "INFO",
+  "enable_auto_trim": true
+}

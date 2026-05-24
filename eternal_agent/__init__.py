@@ -1,0 +1,69 @@
+# 基于第一性原理 · 轻量化永动知识图谱Agent
+from .agent import EternalSelfAgent
+from .knowledge_graph import KnowledgeGraph, Node, Edge
+from .task_queue import BoundedTaskQueue, GLOBAL_TASK_QUEUE
+from .config import Config, global_config
+from .metrics import Metrics, global_metrics
+from .advanced import (
+    AttributeIndex,
+    WeightManager,
+    TaskType,
+    TypedTask,
+    PriorityQueue,
+    GraphTraverser,
+    RelevanceCalculator,
+    TagManager,
+    HistoryTracker,
+    HistoryRecord,
+    LRUCache
+)
+from .evolution import (
+    KnowledgeClusterer,
+    AssociationRuleMiner,
+    AdaptiveWeightLearner,
+    KnowledgeCompleter,
+    AnomalyDetector,
+    GraphCompressor,
+    MultiDimensionalWeight,
+    MultiDimensionalWeightManager,
+    TimeSeriesAnalyzer,
+    GraphIndex,
+    EvolutionStrategy,
+    EvolutionEngine
+)
+
+__all__ = [
+    'EternalSelfAgent',
+    'KnowledgeGraph',
+    'Node',
+    'Edge',
+    'BoundedTaskQueue',
+    'GLOBAL_TASK_QUEUE',
+    'Config',
+    'global_config',
+    'Metrics',
+    'global_metrics',
+    'AttributeIndex',
+    'WeightManager',
+    'TaskType',
+    'TypedTask',
+    'PriorityQueue',
+    'GraphTraverser',
+    'RelevanceCalculator',
+    'TagManager',
+    'HistoryTracker',
+    'HistoryRecord',
+    'LRUCache',
+    'KnowledgeClusterer',
+    'AssociationRuleMiner',
+    'AdaptiveWeightLearner',
+    'KnowledgeCompleter',
+    'AnomalyDetector',
+    'GraphCompressor',
+    'MultiDimensionalWeight',
+    'MultiDimensionalWeightManager',
+    'TimeSeriesAnalyzer',
+    'GraphIndex',
+    'EvolutionStrategy',
+    'EvolutionEngine',
+]
