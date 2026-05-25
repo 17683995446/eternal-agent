@@ -63,6 +63,22 @@ from .observability import (
     HealthReporter,
     ObservableSystem
 )
+from .production import (
+    Environment,
+    ConfigSchema,
+    ConfigValidator,
+    HotReloadConfig,
+    DeploymentManager,
+    SecurityManager,
+    PerformanceBenchmark,
+    PluginInterface,
+    PluginManager,
+    Internationalization,
+    CommunityGuidelines,
+    RoadmapPlanner,
+    FinalSystemChecker,
+    run_final_checks
+)
 
 __all__ = [
     'EternalSelfAgent',
@@ -126,4 +142,18 @@ __all__ = [
     'AuditLogger',
     'HealthReporter',
     'ObservableSystem',
+    'Environment',
+    'ConfigSchema',
+    'ConfigValidator',
+    'HotReloadConfig',
+    'DeploymentManager',
+    'SecurityManager',
+    'PerformanceBenchmark',
+    'PluginInterface',
+    'PluginManager',
+    'Internationalization',
+    'CommunityGuidelines',
+    'RoadmapPlanner',
+    'FinalSystemChecker',
+    'run_final_checks',
 ]
