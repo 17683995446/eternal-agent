@@ -79,6 +79,13 @@ from .production import (
     FinalSystemChecker,
     run_final_checks
 )
+from .api_server import (
+    APIResponse,
+    RateLimiter,
+    APIAuthenticator,
+    APIServer,
+    WSGIApplication
+)
 
 __all__ = [
     'EternalSelfAgent',
@@ -156,4 +163,9 @@ __all__ = [
     'RoadmapPlanner',
     'FinalSystemChecker',
     'run_final_checks',
+    'APIResponse',
+    'RateLimiter',
+    'APIAuthenticator',
+    'APIServer',
+    'WSGIApplication',
 ]
