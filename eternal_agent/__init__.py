@@ -46,6 +46,23 @@ from .reliability import (
     DisasterRecoveryManager,
     ReliabilityManager
 )
+from .observability import (
+    MetricType,
+    Metric,
+    MetricsCollector,
+    Span,
+    Tracer,
+    AlertSeverity,
+    Alert,
+    AlertManager,
+    LogLevel,
+    LogEntry,
+    LogAnalyzer,
+    Profiler,
+    AuditLogger,
+    HealthReporter,
+    ObservableSystem
+)
 
 __all__ = [
     'EternalSelfAgent',
@@ -94,4 +111,19 @@ __all__ = [
     'FailoverManager',
     'DisasterRecoveryManager',
     'ReliabilityManager',
+    'MetricType',
+    'Metric',
+    'MetricsCollector',
+    'Span',
+    'Tracer',
+    'AlertSeverity',
+    'Alert',
+    'AlertManager',
+    'LogLevel',
+    'LogEntry',
+    'LogAnalyzer',
+    'Profiler',
+    'AuditLogger',
+    'HealthReporter',
+    'ObservableSystem',
 ]
