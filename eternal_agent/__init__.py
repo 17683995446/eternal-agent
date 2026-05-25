@@ -86,6 +86,18 @@ from .api_server import (
     APIServer,
     WSGIApplication
 )
+from .api_security import (
+    InputSanitizer,
+    EnhancedAPIAuthenticator,
+    CSRFProtection,
+    SecurityResponseHeaders,
+    SecurityAuditLog,
+    Permission,
+    Role,
+    sanitizer,
+    csrf_protection,
+    security_audit
+)
 
 __all__ = [
     'EternalSelfAgent',
@@ -168,4 +180,14 @@ __all__ = [
     'APIAuthenticator',
     'APIServer',
     'WSGIApplication',
+    'InputSanitizer',
+    'EnhancedAPIAuthenticator',
+    'CSRFProtection',
+    'SecurityResponseHeaders',
+    'SecurityAuditLog',
+    'Permission',
+    'Role',
+    'sanitizer',
+    'csrf_protection',
+    'security_audit',
 ]

@@ -1,5 +1,6 @@
 """
 阶段101：REST API设计与实现
+阶段102：API认证与安全
 为 EternalAgent 提供完整的 RESTful API 接口
 """
 import json
@@ -21,6 +22,18 @@ from .observability import (
     ObservableSystem
 )
 from .reliability import ReliabilityManager
+from .api_security import (
+    InputSanitizer,
+    EnhancedAPIAuthenticator,
+    CSRFProtection,
+    SecurityResponseHeaders,
+    SecurityAuditLog,
+    Permission,
+    Role,
+    sanitizer,
+    csrf_protection,
+    security_audit
+)
 
 
 class APIResponse:
@@ -136,7 +149,9 @@ class APIServer:
     提供完整的 RESTful API 接口
     """
     
-    def __init__(self, kg: KnowledgeGraph = None, agent: EternalSelfAgent = None):
+    def __init__(self, kg: KnowledgeGraph = None, agent: EternalSelfAgent = None,
+                 enable_auth: bool = True, enable_rate_limit: bool = True,
+                 enable_sanitize: bool = True):
         logger.info("[API Server] Initializing API Server")
         
         self.kg = kg or KnowledgeGraph()
@@ -152,9 +167,17 @@ class APIServer:
         if agent is None:
             self.reliability = ReliabilityManager(self.kg)
         
-        # 初始化认证和限流
-        self.auth = APIAuthenticator()
+        # 初始化安全组件
+        self.enable_auth = enable_auth
+        self.enable_rate_limit = enable_rate_limit
+        self.enable_sanitize = enable_sanitize
+        
+        self.auth = EnhancedAPIAuthenticator()
         self.rate_limiter = RateLimiter(max_requests=100, window=60)
+        self.sanitizer = sanitizer
+        self.csrf = csrf_protection
+        self.audit_log = security_audit
+        self.security_headers = SecurityResponseHeaders()
         
         # 请求计数
         self.request_count = 0
@@ -734,10 +757,27 @@ class APIServer:
         """
         logger.info(f"[API] {method} {path}")
         
+        headers = headers or {}
+        api_key = headers.get("X-API-Key", "")
+        client_id = api_key or headers.get("X-Client-ID", "anonymous")
+        
         # 速率限制检查
-        client_id = headers.get("X-API-Key", "anonymous") if headers else "anonymous"
-        if not self.rate_limiter.check(client_id):
-            return APIResponse.error("Rate limit exceeded", 429)
+        if self.enable_rate_limit:
+            if not self.rate_limiter.check(client_id):
+                self.audit_log.log_event("rate_limit_exceeded", {"client": client_id, "path": path})
+                return APIResponse.error("Rate limit exceeded", 429)
+        
+        # API 认证检查（除健康检查外）
+        if self.enable_auth and path not in ("/health", "/api/health"):
+            auth_valid, auth_msg = self.auth.validate_key(api_key, path=path)
+            if not auth_valid:
+                self.audit_log.log_event("auth_failed", {"client": client_id, "path": path, "reason": auth_msg})
+                return APIResponse.error(auth_msg, 401)
+        
+        # 输入清理
+        if self.enable_sanitize:
+            data = self._sanitize_input(data)
+            params = self._sanitize_params(params)
         
         # 追踪请求
         span = self.tracer.start_span(f"{method} {path}")
@@ -750,7 +790,12 @@ class APIServer:
             self.tracer.end_span(span.span_id, "OK")
             
             # 记录日志
-            self._log_request(method, path, response.get("code", 200))
+            status_code = response.get("code", 200) if response.get("status") == "error" else 200
+            self._log_request(method, path, status_code)
+            
+            # 添加安全头
+            if isinstance(response, dict):
+                response["headers"] = self.security_headers.get_headers()
             
             return response
             
@@ -758,7 +803,42 @@ class APIServer:
             logger.error(f"[API] Error handling request: {e}")
             self.tracer.end_span(span.span_id, "ERROR")
             self._log_request(method, path, 500)
+            self.audit_log.log_event("request_error", {"client": client_id, "path": path, "error": str(e)[:200]})
             return APIResponse.error(f"Internal error: {str(e)}", 500)
+    
+    def _sanitize_input(self, data: Dict) -> Dict:
+        """清理输入数据"""
+        if not data or not isinstance(data, dict):
+            return {}
+        
+        sanitized = {}
+        for key, value in data.items():
+            if isinstance(value, str):
+                sanitized[key] = self.sanitizer.sanitize_string(value)
+            elif isinstance(value, dict):
+                sanitized[key] = self.sanitizer.sanitize_attributes(value)
+            elif isinstance(value, list):
+                if all(isinstance(x, str) for x in value):
+                    _, _, valid_tags = self.sanitizer.validate_tags(value)
+                    sanitized[key] = valid_tags
+                else:
+                    sanitized[key] = value
+            else:
+                sanitized[key] = value
+        return sanitized
+    
+    def _sanitize_params(self, params: Dict) -> Dict:
+        """清理查询参数"""
+        if not params or not isinstance(params, dict):
+            return {}
+        
+        sanitized = {}
+        for key, value in params.items():
+            if isinstance(value, str):
+                sanitized[key] = self.sanitizer.sanitize_string(value, 200)
+            else:
+                sanitized[key] = value
+        return sanitized
     
     def _route(self, method: str, path: str, data: Dict = None, params: Dict = None) -> Dict:
         """路由分发"""
@@ -798,6 +878,25 @@ class APIServer:
         # 维护
         if path == "/api/maintenance":
             return self.handle_maintenance()
+        
+        # API Key 管理
+        if path == "/api/keys":
+            if method == "GET":
+                return self.handle_list_keys()
+            elif method == "POST":
+                return self.handle_create_key(data)
+        
+        if path.startswith("/api/keys/") and method == "DELETE":
+            key_id = path[10:]
+            return self.handle_revoke_key(key_id)
+        
+        # 安全日志
+        if path == "/api/security/logs":
+            return self.handle_security_logs(params)
+        
+        # CSRF 令牌
+        if path == "/api/csrf/token" and method == "GET":
+            return self.handle_get_csrf_token()
         
         # 节点操作
         if path == "/api/nodes":
@@ -877,8 +976,96 @@ class APIServer:
             span_id = path[11:]
             return self.handle_end_span(span_id, data or {})
         
+        # ==========================================
+        # 安全管理
+        # ==========================================
+    
         # 404
         return APIResponse.error("Endpoint not found", 404)
+    
+    def handle_list_keys(self) -> Dict:
+        """列出所有API密钥信息（不含密钥值）"""
+        logger.info("[API] Listing API keys")
+        keys_info = []
+        for key, info in self.auth.api_keys.items():
+            masked_key = key[:8] + "..." if len(key) > 8 else key
+            keys_info.append({
+                "name": info["name"],
+                "key": masked_key,
+                "permissions": list(info["permissions"]),
+                "created_at": info["created_at"],
+                "expires_at": info.get("expires_at"),
+                "last_used": info.get("last_used")
+            })
+        return APIResponse.success({
+            "keys": keys_info,
+            "total": len(keys_info)
+        })
+    
+    def handle_create_key(self, data: Dict) -> Dict:
+        """创建新的API密钥"""
+        logger.info(f"[API] Creating API key: {data.get('name')}")
+        name = data.get("name")
+        if not name:
+            return APIResponse.error("Name is required", 400)
+        
+        role_name = data.get("role", "editor")
+        permissions = {
+            "admin": Role.ADMIN,
+            "editor": Role.EDITOR,
+            "viewer": Role.VIEWER,
+            "readonly": Role.READ_ONLY
+        }.get(role_name.lower(), Role.EDITOR)
+        
+        expires_in = data.get("expires_in")
+        
+        key = self.auth.generate_key(name, permissions, expires_in)
+        self.audit_log.log_event("key_created", {"name": name, "role": role_name})
+        
+        return APIResponse.success({
+            "name": name,
+            "api_key": key,
+            "expires_in": expires_in,
+            "permissions": list(permissions)
+        }, "API key created successfully")
+    
+    def handle_revoke_key(self, key_prefix: str) -> Dict:
+        """撤销API密钥"""
+        logger.info(f"[API] Revoking API key: {key_prefix}")
+        
+        # 查找匹配的密钥
+        matching_keys = [
+            key for key in self.auth.api_keys 
+            if key.startswith(key_prefix)
+        ]
+        
+        if not matching_keys:
+            return APIResponse.error("API key not found", 404)
+        
+        for key in matching_keys:
+            self.auth.revoke_key(key)
+        
+        return APIResponse.success({
+            "revoked_count": len(matching_keys)
+        }, f"Revoked {len(matching_keys)} API key(s)")
+    
+    def handle_security_logs(self, params: Dict) -> Dict:
+        """获取安全审计日志"""
+        logger.info("[API] Getting security logs")
+        limit = int(params.get("limit", 100)) if params else 100
+        logs = self.audit_log.get_logs(limit)
+        return APIResponse.success({
+            "logs": logs,
+            "total": len(logs)
+        })
+    
+    def handle_get_csrf_token(self) -> Dict:
+        """获取CSRF令牌"""
+        logger.info("[API] Getting CSRF token")
+        token = self.csrf.generate_token()
+        return APIResponse.success({
+            "csrf_token": token
+        })
 
 
 # 简单的WSGI应用接口
